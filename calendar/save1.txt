@@ -1,0 +1,155 @@
+/**
+ * Created by mircea on 7/22/2017.
+ */
+import com.google.api.client.util.DateTime;
+import com.google.api.services.calendar.model.Event;
+import com.google.api.services.calendar.model.Events;
+import com.google.api.client.auth.oauth2.Credential;
+import com.google.api.client.extensions.java6.auth.oauth2.AuthorizationCodeInstalledApp;
+import com.google.api.client.extensions.jetty.auth.oauth2.LocalServerReceiver;
+import com.google.api.client.googleapis.auth.oauth2.GoogleAuthorizationCodeFlow;
+import com.google.api.client.googleapis.auth.oauth2.GoogleClientSecrets;
+import com.google.api.client.googleapis.javanet.GoogleNetHttpTransport;
+import com.google.api.client.http.HttpTransport;
+import com.google.api.client.json.JsonFactory;
+import com.google.api.client.json.jackson2.JacksonFactory;
+import com.google.api.client.util.DateTime;
+import com.google.api.client.util.store.FileDataStoreFactory;
+import com.google.api.services.calendar.CalendarScopes;
+import com.google.api.services.calendar.model.Event;
+import com.google.api.services.calendar.model.Events;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.util.Arrays;
+import java.util.List;
+
+import java.awt.Color;
+import java.awt.FlowLayout;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
+import java.io.BufferedReader;
+import java.io.FileReader;
+import java.io.IOException;
+import java.util.List;
+import javax.swing.*;
+
+
+import javax.swing.*;
+
+public class Interfata extends JFrame{
+    private JTextField answer;
+    private JButton button;
+    private JButton button2;
+    private JPanel contentPanel;
+    private JList<String> l1;
+    private DefaultListModel<String> modelEvent = new DefaultListModel<String>();
+    Quickstart q ;
+    String cale = "C:/array.txt";
+    String expresie="";
+    com.google.api.services.calendar.Calendar service = null;
+    Events events = null;
+    String line="";
+    public String citireFisier(String s) {
+        try {
+            FileReader in = new FileReader(s);
+            BufferedReader br = new BufferedReader(in);
+            this.line = br.readLine();
+            System.out.println(line);
+
+        } catch (IOException e) {
+            System.out.println("io exc citire ser");
+            e.printStackTrace();
+        }
+        return this.line;
+    }
+    public Interfata () {
+        super("Licenta");
+        setSize(500, 500);
+
+        q = new Quickstart();
+        answer = new JTextField(expresie, 25);
+
+        answer.setVisible(true);
+        answer.setEditable(false);
+
+        button = new JButton("Afiseaza");
+        button2 = new JButton("Refresh");
+        l1 = new JList<String>();
+        l1.setModel(modelEvent);
+        contentPanel = new JPanel();
+        contentPanel.setBackground(Color.GRAY);
+
+        contentPanel.add(answer);
+        contentPanel.add(button);
+        contentPanel.add(button2);
+        contentPanel.add(l1);
+        contentPanel.setLayout(new FlowLayout());
+        this.setContentPane(contentPanel);
+
+
+        button.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseReleased(MouseEvent e) {
+               // expresie=event.getDescription();
+                expresie = citireFisier(cale);
+                answer.setText(expresie);
+            }
+        });
+        button2.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseReleased(MouseEvent e) {
+
+                modelEvent.clear();
+
+                try {
+                    service = q.getCalendarService();
+                } catch (IOException e1) {
+                    e1.printStackTrace();
+                }
+
+                // List the next 10 events from the primary calendar.
+                DateTime now = new DateTime(System.currentTimeMillis());
+                try {
+                    events = service.events().list("primary")
+                            .setMaxResults(10)
+                            .setTimeMin(now)
+                            .setOrderBy("startTime")
+                            .setSingleEvents(true)
+                            .execute();
+                } catch (IOException e1) {
+                    e1.printStackTrace();
+                }
+                List<Event> items = events.getItems();
+                if (items.size() == 0) {
+                    System.out.println("No upcoming events found.");
+                } else {
+                    System.out.println("Upcoming events");
+                        for (Event event : items) {
+                        DateTime start = event.getStart().getDateTime();
+                        if (start == null) {
+                            start = event.getStart().getDate();
+                        }
+                        System.out.printf("%s (%s)\n", event.getSummary(), start);
+                        //System.out.println(event.getSummary());
+                        expresie=event.getEtag();
+                        answer.setText(expresie);
+                        modelEvent.addElement(event.getSummary());
+
+
+
+                    }
+                }
+            }
+        });
+
+        l1.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                if(e.getClickCount()==2){}
+            }
+        });
+
+    }
+}
